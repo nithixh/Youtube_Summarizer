@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}YouTube Summarization Agent - Home{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold text-primary">
+                <i class="bi bi-youtube text-danger"></i>
+                YouTube Summarization Agent
+            </h1>
+            <p class="lead">
+                Automatically download, transcribe, and summarize YouTube videos
+                into structured chapters
+            </p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <span class="badge bg-success">100% Local</span>
+                <span class="badge bg-info">Windows-Friendly</span>
+                <span class="badge bg-warning text-dark">Fast & Reliable</span>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-link-45deg"></i> Enter YouTube URL</h5>
+            </div>
+            <div class="card-body">
+                <form id="summarizeForm">
+                    <div class="mb-3">
+                        <label for="videoUrl" class="form-label">YouTube Video URL</label>
+                        <input 
+                            type="url" 
+                            class="form-control form-control-lg" 
+                            id="videoUrl" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            required
+                        >
+                        <div class="form-text">
+                            Supports youtube.com and youtu.be URLs
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="cleanupFiles" checked>
+                        <label class="form-check-label" for="cleanupFiles">
+                            Delete downloaded files after processing
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                        <i class="bi bi-magic"></i> Summarize Video
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Progress Section (Hidden by default) -->
+        <div id="progressSection" class="card shadow-sm" style="display: none;">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <span class="spinner-grow spinner-grow-sm me-2" role="status"></span>
+                    Processing Video
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Progress Bar -->
+                <div class="progress mb-3" style="height: 25px;">
+                    <div id="progressBar" 
+                         class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         style="width: 0%">
+                        0%
+                    </div>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="statusMessages"></div>
+
+                <!-- Video Info -->
+                <div id="videoInfo" class="alert alert-info" style="display: none;">
+                    <h6><i class="bi bi-info-circle"></i> Video Information</h6>
+                    <div id="videoDetails"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> How It Works</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="fs-1 text-primary"><i class="bi bi-download"></i></div>
+                        <h6>Download</h6>
+                        <small class="text-muted">Extract audio using yt-dlp</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="fs-1 text-success"><i class="bi bi-mic"></i></div>
+                        <h6>Transcribe</h6>
+                        <small class="text-muted">Convert to text with Whisper</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="fs-1 text-warning"><i class="bi bi-puzzle"></i></div>
+                        <h6>Chunk</h6>
+                        <small class="text-muted">Break into topics with TF-IDF</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="fs-1 text-info"><i class="bi bi-file-text"></i></div>
+                        <h6>Summarize</h6>
+                        <small class="text-muted">Extract key points with Sumy</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('summarizeForm');
+    const progressSection = document.getElementById('progressSection');
+    const progressBar = document.getElementById('progressBar');
+    const statusMessages = document.getElementById('statusMessages');
+    const videoInfo = document.getElementById('videoInfo');
+    const videoDetails = document.getElementById('videoDetails');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const videoUrl = document.getElementById('videoUrl').value;
+        const cleanup = document.getElementById('cleanupFiles').checked;
+
+        // Show progress section
+        progressSection.style.display = 'block';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+        statusMessages.innerHTML = '';
+        videoInfo.style.display = 'none';
+
+        // Scroll to progress
+        progressSection.scrollIntoView({ behavior: 'smooth' });
+
+        try {
+            const response = await fetch('/summarize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: videoUrl, cleanup: cleanup })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            handleUpdate(data);
+                        } catch (e) {
+                            console.error('Parse error:', e);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            addMessage('danger', `Error: ${error.message}`);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-magic"></i> Summarize Video';
+        }
+    });
+
+    function handleUpdate(data) {
+        // Update progress bar
+        if (data.progress !== undefined) {
+            progressBar.style.width = data.progress + '%';
+            progressBar.textContent = data.progress + '%';
+        }
+
+        // Add status message
+        addMessage(data.status === 'error' ? 'danger' : 'info', data.message);
+
+        // Show video info
+        if (data.video_info) {
+            videoDetails.innerHTML = `
+                <strong>Title:</strong> ${data.video_info.title}<br>
+                <strong>Channel:</strong> ${data.video_info.uploader}<br>
+                <strong>Duration:</strong> ${formatDuration(data.video_info.duration)}
+            `;
+            videoInfo.style.display = 'block';
+        }
+
+        // Redirect on completion
+        if (data.step === 'completed' && data.video_id) {
+            setTimeout(() => {
+                window.location.href = `/result/${data.video_id}`;
+            }, 1500);
+        }
+    }
+
+    function addMessage(type, text) {
+        const alertClass = type === 'danger' ? 'alert-danger' : 
+                          type === 'success' ? 'alert-success' : 'alert-info';
+
+        const alert = document.createElement('div');
+        alert.className = `alert ${alertClass} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${text}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        statusMessages.appendChild(alert);
+
+        // Auto-remove non-error messages
+        if (type !== 'danger') {
+            setTimeout(() => alert.remove(), 5000);
+        }
+    }
+
+    function formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+});
+</script>
+{% endblock %}
