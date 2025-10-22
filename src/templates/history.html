@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Processing History{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="bi bi-clock-history"></i> Processing History</h2>
+            <a href="/" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> New Summary
+            </a>
+        </div>
+
+        {% if summaries %}
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Video Title</th>
+                                <th>Chapters</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for summary in summaries %}
+                            <tr>
+                                <td>{{ summary.video_title[:50] }}...</td>
+                                <td><span class="badge bg-info">{{ summary.total_chapters }}</span></td>
+                                <td><small class="text-muted">{{ summary.created_at }}</small></td>
+                                <td>
+                                    <a href="/result/{{ summary.video_id }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i>
+            No summaries found. Start by summarizing your first video!
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
