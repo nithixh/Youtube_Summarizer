@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Summary - {{ summary.video_id }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <!-- Header Card -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="bi bi-check-circle text-success"></i>
+                    Summary Complete
+                </h2>
+                <p class="text-muted mb-3">Video ID: <code>{{ video_id }}</code></p>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="badge bg-primary">
+                        {{ summary.total_chapters }} Chapters
+                    </span>
+                    <span class="badge bg-info">
+                        Method: {{ summary.method|upper }}
+                    </span>
+                </div>
+
+                <div class="mt-3">
+                    <a href="/download/{{ video_id }}/txt" class="btn btn-outline-primary">
+                        <i class="bi bi-file-text"></i> Download TXT
+                    </a>
+                    <a href="/download/{{ video_id }}/json" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-code"></i> Download JSON
+                    </a>
+                    <a href="/" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle"></i> Summarize Another
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chapters -->
+        <div class="accordion" id="chaptersAccordion">
+            {% for chapter in summary.chapters %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading{{ chapter.chapter_id }}">
+                    <button class="accordion-button {{ 'collapsed' if loop.index > 1 else '' }}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#collapse{{ chapter.chapter_id }}"
+                            aria-expanded="{{ 'true' if loop.index == 1 else 'false' }}">
+                        <div class="w-100">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary me-2">{{ loop.index }}</span>
+                                <strong>{{ chapter.title }}</strong>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-clock"></i> {{ chapter.timestamp }}
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse{{ chapter.chapter_id }}" 
+                     class="accordion-collapse collapse {{ 'show' if loop.index == 1 else '' }}"
+                     aria-labelledby="heading{{ chapter.chapter_id }}"
+                     data-bs-parent="#chaptersAccordion">
+                    <div class="accordion-body">
+                        <!-- Summary -->
+                        <div class="alert alert-light">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-star-fill text-warning"></i> Summary
+                            </h6>
+                            <p class="mb-0">{{ chapter.summary }}</p>
+                        </div>
+
+                        <!-- Original Text Toggle -->
+                        <div class="mb-2">
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#original{{ chapter.chapter_id }}">
+                                <i class="bi bi-file-text"></i> Show Full Text
+                            </button>
+                        </div>
+
+                        <div class="collapse" id="original{{ chapter.chapter_id }}">
+                            <div class="card card-body bg-light">
+                                <small class="text-muted">
+                                    {{ chapter.original_text }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
