@@ -1,0 +1,15 @@
+/* Custom styles for YouTube Summarization Agent */
+
+/* Add any custom CSS here if needed */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f3ff;
+    color: #0d6efd;
+}
+
+.progress {
+    border-radius: 0.5rem;
+}
